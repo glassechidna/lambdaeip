@@ -13,6 +13,30 @@ Today I learned there's a ~better~ different way, courtesy of [Chaz Schlarp][twe
 I immediately went about generalising it so that I could set it and forget it in all
 my personal environments.
 
+### Deployment
+
+You have two options. The first is deploying the following CloudFormation template:
+
+```yaml
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  App:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:607481581596:applications/lambdaeip
+        SemanticVersion: 0.1.0
+      Parameters:
+        VpcId: vpc-abc123
+```
+
+The second option is clicking [this link][console] to open the AWS web console,
+fill in the VPC ID and click the _Deploy_ button. It should look like the
+following screenshot:
+
+![console screenshot](deploy.png)
+
 ### How it works
 
 When a VPC-attached Lambda function is created, the Lambda service will
@@ -59,12 +83,5 @@ Resources:
 Chaz says not to use this in production, but YOLO if you care that much about
 saving tens of dollars a month, it's probably not _really_ a production env, right?!
 
-### Deployment
-
-```
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bootstrap
-stackit up --stack-name lambdaeip --template cfn.yml VpcId=vpc-1234abcd
-```
-
 [tweet]: https://twitter.com/schlarpc/status/1415393605330501632
-
+[console]: https://console.aws.amazon.com/lambda/home?region=us-east-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:607481581596:applications/lambdaeip
