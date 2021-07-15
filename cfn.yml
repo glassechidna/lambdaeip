@@ -1,0 +1,76 @@
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SentinelGroupIdParameter:
+    Type: String
+    Default: /lambdaeip/security-group-id
+
+Resources:
+  SentinelGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Sentinel group for allocating EIPs to Lambda functions
+      VpcId: !Ref VpcId
+
+  Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Ref SentinelGroupIdParameter
+      Type: String
+      Value: !Ref SentinelGroup
+
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./bootstrap
+      Runtime: provided
+      Handler: bootstrap
+      AutoPublishAlias: live
+      Timeout: 15
+      Environment:
+        Variables:
+          SENTINEL_SECURITY_GROUP_ID: !Ref SentinelGroup
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ec2:CreateTags
+                - ec2:DescribeAddresses
+                - ec2:AllocateAddress
+                - ec2:ReleaseAddress
+                - ec2:AssociateAddress
+                - ec2:DisassociateAddress
+              Resource: "*"
+      Events:
+        Create:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              detail-type: [AWS API Call via CloudTrail]
+              detail:
+                eventSource: [ec2.amazonaws.com]
+                eventName: [CreateNetworkInterface]
+                requestParameters:
+                  groupSet:
+                    items:
+                      groupId: [!Ref SentinelGroup]
+                errorCode:
+                  - exists: false # exclude dry runs
+        Delete:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              detail-type: [AWS API Call via CloudTrail]
+              detail:
+                eventSource: [ec2.amazonaws.com]
+                eventName: [DeleteNetworkInterface]
+                errorCode:
+                  - exists: false # exclude dry runs
+
+Outputs:
+  SentinelGroup:
+    Value: !Ref SentinelGroup
+  Function:
+    Value: !Ref Function.Version

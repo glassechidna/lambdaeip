@@ -1,0 +1,31 @@
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+
+  SentinelGroupId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::SecurityGroup::Id>
+    Default: /lambdaeip/security-group-id
+
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Handler: index.handler
+      Timeout: 5
+      VpcConfig:
+        SecurityGroupIds: [!Ref SentinelGroupId, sg-whatever-else, sg-you-want]
+        SubnetIds: !Ref SubnetIds
+      InlineCode: |
+        import urllib.request
+
+        def handler(a, b):
+          content = urllib.request.urlopen("https://www.cloudflare.com/cdn-cgi/trace").read()
+          print(content)
+          return content
+
+Outputs:
+  Function:
+    Value: !Ref Function
