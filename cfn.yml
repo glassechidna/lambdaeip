@@ -1,5 +1,17 @@
 Transform: AWS::Serverless-2016-10-31
 
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: lambdaeip
+    Description: Internet connectivity for your VPC-attached Lambda functions without a NAT Gateway
+    SemanticVersion: "0.1.0"
+    Author: Glass Echidna
+    LicenseUrl: LICENSE.txt
+    ReadmeUrl: README.md
+    Labels: ['lambda', 'vpc', 'nat-gateway']
+    HomePageUrl: https://github.com/glassechidna/lambdaeip
+    SourceCodeUrl: https://github.com/glassechidna/lambdaeip
+
 Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id

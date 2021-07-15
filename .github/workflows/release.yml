@@ -1,0 +1,40 @@
+on:
+  push:
+    tags: ["*"]
+
+name: Release
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      AWS_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.ORG_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.ORG_AWS_SECRET_ACCESS_KEY }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.16
+
+      - name: build
+        run: go build -ldflags="-s -w -buildid= " -o bootstrap
+
+      - name: sam package
+        uses: docker://public.ecr.aws/sam/build-provided:1.26
+        with:
+          args: >
+            sh -c "
+            sam package
+            --template-file cfn.yml
+            --output-template-file packaged.yml
+            --s3-bucket $S3_BUCKET
+            "
+
+      - name: sam publish
+        uses: docker://public.ecr.aws/sam/build-provided:1.26
+        with:
+          args: sam publish --template packaged.yml
